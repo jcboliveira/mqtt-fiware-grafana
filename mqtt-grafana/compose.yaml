@@ -1,0 +1,283 @@
+services: # Declares all containers that make up the FIWARE deployment.
+  mongo:
+    # MongoDB stores Orion, IoT Agent, and other FIWARE component metadata.
+    image: mongo:5.0 # Uses the MongoDB 5.0 image required by this stack.
+    container_name: fiware-mongo # Gives the database a stable, human-readable container name.
+    restart: unless-stopped # Restarts the container after failures or host reboots, unless explicitly stopped.
+    command: --bind_ip_all # Allows MongoDB to accept connections from the other Compose services.
+    healthcheck:
+      # Makes dependent services wait for a responsive MongoDB instance.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"] # Runs a lightweight MongoDB ping without shell noise.
+      interval: 5s # Checks database readiness every five seconds.
+      timeout: 5s # Fails an individual readiness check after five seconds.
+      retries: 12 # Requires up to twelve failed checks before marking MongoDB unhealthy.
+      start_period: 10s # Gives MongoDB ten seconds to initialize before failures count.
+    volumes:
+      - mongo-data:/data/db # Persists MongoDB data in the named volume mounted at MongoDB's data directory.
+
+  mosquitto:
+    # MQTT broker receiving telemetry from devices and forwarding it to the bridge.
+    image: eclipse-mosquitto:2 # Uses Eclipse Mosquitto version 2 as the MQTT broker.
+    container_name: fiware-mosquitto # Assigns a stable container name for local administration.
+    restart: unless-stopped # Keeps the broker available after failures or host restarts.
+    command:
+      - /bin/sh # Runs the temporary configuration setup with the image's POSIX shell.
+      - -c # Treats the following block as one shell command.
+      - |
+        # Creates a minimal broker configuration because this service does not mount a config file.
+        printf '%s\n' 'listener 1883' 'allow_anonymous true' 'persistence false' > /tmp/mosquitto.conf
+        exec mosquitto -c /tmp/mosquitto.conf
+    ports:
+      - "1883:1883" # Publishes MQTT's container port 1883 on port 1883 of the host.
+
+  orion:
+    # Orion Context Broker provides the central NGSI entity API and context storage.
+    image: fiware/orion:3.12.0 # Pins Orion to a known FIWARE release for reproducible behavior.
+    container_name: fiware-orion # Gives Orion a stable container name.
+    restart: unless-stopped # Restarts Orion automatically unless it was intentionally stopped.
+    depends_on:
+      mongo:
+        condition: service_healthy # Starts Orion only after MongoDB passes its healthcheck.
+    command: -dbhost mongo -logLevel INFO # Uses the Compose service name for MongoDB and enables informational logging.
+    ports:
+      - "1026:1026" # Publishes Orion's NGSI API on host port 1026.
+
+  iot-agent:
+    # JSON IoT Agent translates device payloads into NGSI requests for Orion.
+    image: fiware/iotagent-json:latest # Uses the latest FIWARE JSON IoT Agent image.
+    container_name: fiware-iot-agent-json # Assigns a descriptive and stable container name.
+    restart: unless-stopped # Restarts the agent after failures or host restarts.
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Resolves the host machine from inside the container on Linux.
+    depends_on:
+      - mongo # Ensures MongoDB is started before the agent.
+      - orion # Ensures Orion is started before the agent.
+      - mosquitto # Ensures the MQTT broker is started before the agent.
+    environment:
+      IOTA_CB_HOST: orion # Points the agent's Context Broker client at Orion's Compose hostname.
+      IOTA_CB_PORT: 1026 # Selects Orion's internal NGSI port.
+      IOTA_MONGO_HOST: mongo # Selects the MongoDB Compose service as the metadata database host.
+      IOTA_MONGO_PORT: 27017 # Selects MongoDB's internal port.
+      IOTA_MONGO_URI: mongodb://mongo:27017 # Provides the complete MongoDB connection URI.
+      IOTA_MONGO_DB: iotagent # Stores IoT Agent state in the iotagent database.
+      IOTA_MQTT_HOST: mosquitto # Points MQTT connectivity at the Mosquitto service.
+      IOTA_MQTT_PORT: 1883 # Selects the broker's internal MQTT port.
+      IOTA_AMQP_DISABLED: "true" # Disables AMQP because this deployment uses MQTT instead.
+      IOTA_NORTH_PORT: 4041 # Exposes the agent's management API on its standard port.
+      IOTA_DEFAULT_RESOURCE: /iot/json # Sets the default HTTP resource used by JSON devices.
+      IOTA_LOG_LEVEL: INFO # Enables informational operational logging.
+    ports:
+      - "4041:4041" # Publishes the IoT Agent management API on host port 4041.
+      - "7896:7896" # Publishes the IoT Agent JSON HTTP binding on host port 7896.
+
+  mqtt-json-bridge:
+    # Small Python adapter for MQTT topics that need direct or JSON delivery to FIWARE.
+    image: python:3.12-slim # Provides Python 3.12 with a minimal Debian-based runtime.
+    container_name: fiware-mqtt-json-bridge # Gives the adapter a stable container name.
+    restart: unless-stopped # Restarts the bridge if its process or the broker connection fails.
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Makes the host gateway address available if external devices need it.
+    depends_on:
+      - iot-agent # Starts the bridge after the JSON IoT Agent container is launched.
+      - mosquitto # Starts the bridge after the MQTT broker container is launched.
+    command:
+      - /bin/sh # Runs the dependency installation and Python program in the image shell.
+      - -c # Executes the following multi-line script as one shell command.
+      - |
+        # Installs the MQTT client and HTTP client at container startup, without retaining pip's cache.
+        pip install --no-cache-dir paho-mqtt requests
+        # Starts the inline bridge program that consumes fiware/# and posts data to FIWARE.
+        python - <<'PY'
+        import json
+        import time
+        import requests
+        import paho.mqtt.client as mqtt
+
+        TARGET = "http://iot-agent:7896/iot/json"
+        ORION_TARGET = "http://orion:1026/v2/entities?options=upsert"
+        TOPICS = {
+            "fiware/weather": ("weather", "Weather"),
+            "fiware/airquality": ("airquality", "AirQualityObserved"),
+        }
+
+        def on_message(client, userdata, message):
+            try:
+                topic_parts = message.topic.split("/")
+                if len(topic_parts) == 4 and topic_parts[:2] == ["fiware", "airquality"]:
+                  _, _, station, attribute = topic_parts
+                  entity_id = f"airquality_{station}"
+                  entity_type = "AirQualityObserved"
+                elif len(topic_parts) == 4 and topic_parts[:2] == ["fiware", "weather"]:
+                  _, _, station, attribute = topic_parts
+                  entity_id = f"weather_{station}"
+                  entity_type = "WeatherObserved"
+                else:
+                  entity_id = None
+
+                if entity_id:
+                    raw_value = message.payload.decode("utf-8")
+                    try:
+                        value = float(raw_value)
+                        attribute_type = "Number"
+                    except ValueError:
+                        value = raw_value
+                        attribute_type = "Text"
+                    response = requests.post(
+                        ORION_TARGET,
+                        headers={"fiware-service": "openiot", "fiware-servicepath": "/"},
+                        json={
+                            "id": entity_id,
+                          "type": entity_type,
+                            attribute: {"value": value, "type": attribute_type},
+                        },
+                        timeout=10,
+                    )
+                    response.raise_for_status()
+                    print(f"Enviado {message.topic} para Orion: {response.status_code}", flush=True)
+                    return
+
+                payload = json.loads(message.payload.decode("utf-8"))
+                device_id, entity_type = TOPICS[message.topic]
+                payload.setdefault("id", device_id)
+                payload.setdefault("type", entity_type)
+                response = requests.post(
+                    TARGET,
+                    headers={"fiware-service": "openiot", "fiware-servicepath": "/"},
+                    json=payload,
+                    timeout=10,
+                )
+                response.raise_for_status()
+                print(f"Enviado {message.topic}: {response.status_code}", flush=True)
+            except Exception as error:
+                print(f"Erro ao processar {message.topic}: {error}", flush=True)
+
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        client.on_message = on_message
+        while True:
+            try:
+                client.connect("mosquitto", 1883, 60)
+                client.subscribe("fiware/#")
+                client.loop_forever()
+            except Exception as error:
+                print(f"Broker MQTT indisponivel: {error}", flush=True)
+                time.sleep(5)
+
+  crate:
+    # CrateDB stores the time-series history written by QuantumLeap.
+    image: crate:6.4.3 # Pins CrateDB to a known version compatible with this setup.
+    container_name: fiware-crate # Assigns a stable database container name.
+    restart: unless-stopped # Restarts CrateDB after failures or host restarts.
+    command: ["crate", "-Cnetwork.host=_site_", "-Cdiscovery.type=single-node"] # Binds to the container network and disables cluster discovery for one node.
+    ports:
+      - "4200:4200" # Publishes CrateDB's HTTP administration and SQL endpoint.
+      - "5432:5432" # Publishes CrateDB's PostgreSQL wire-compatible endpoint for Grafana.
+    volumes:
+      - crate-data:/data # Persists CrateDB tables and indexes in the named volume.
+
+  quantumleap:
+    # QuantumLeap subscribes to Orion changes and persists historical observations in CrateDB.
+    image: orchestracities/quantumleap:1.0.0 # Pins QuantumLeap to a known release.
+    container_name: fiware-quantumleap # Assigns a stable time-series service name.
+    restart: unless-stopped # Restarts QuantumLeap after failures or host restarts.
+    depends_on:
+      - crate # Starts QuantumLeap after the CrateDB container is launched.
+    environment:
+      CRATE_HOST: crate # Uses the Compose service name to reach CrateDB internally.
+      CRATE_PORT: 4200 # Uses CrateDB's internal HTTP port.
+      USE_GEOCODING: "False" # Disables optional geocoding for observations.
+    ports:
+      - "8668:8668" # Publishes QuantumLeap's notification and query API on host port 8668.
+
+  crate-view-init:
+    # Creates compatibility views for the Grafana panels.
+    image: curlimages/curl:8.9.1
+    container_name: fiware-crate-view-init
+    depends_on:
+      - crate
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        # QuantumLeap creates its entity table after the first matching notification.
+        until response=$$(curl -sS http://crate:4200/_sql -H 'Content-Type: application/json' --data-binary '{"stmt":"SELECT 1 FROM information_schema.tables WHERE table_schema = '\''mtopeniot'\'' AND table_name = '\''etweatherobserved'\''"}') && echo "$${response}" | grep -q '"rows":\[\[1\]\]'; do
+          sleep 5
+        done
+        curl -fsS http://crate:4200/_sql \
+          -H 'Content-Type: application/json' \
+          --data-binary '{"stmt":"CREATE VIEW doc.etweather AS SELECT * FROM mtopeniot.etweatherobserved"}' || true
+        until response=$$(curl -sS http://crate:4200/_sql -H 'Content-Type: application/json' --data-binary '{"stmt":"SELECT 1 FROM information_schema.tables WHERE table_schema = '\''mtopeniot'\'' AND table_name = '\''etairqualityobserved'\''"}') && echo "$${response}" | grep -q '"rows":\[\[1\]\]'; do
+          sleep 5
+        done
+        curl -fsS http://crate:4200/_sql \
+          -H 'Content-Type: application/json' \
+          --data-binary '{"stmt":"CREATE VIEW doc.etairqualityobserved AS SELECT * FROM mtopeniot.etairqualityobserved"}' || true
+        echo 'CrateDB compatibility view initialized.'
+
+  grafana:
+    # Grafana provides dashboards and visualization for the historical CrateDB data.
+    image: grafana/grafana:latest # Uses the latest Grafana release for the current PostgreSQL query builder.
+    container_name: fiware-grafana # Assigns a stable dashboard service name.
+    restart: unless-stopped # Restarts Grafana after failures or host restarts.
+    depends_on:
+      - crate # Starts Grafana after the CrateDB container is launched.
+    environment:
+      GF_SECURITY_ADMIN_USER: admin # Sets the initial Grafana administrator username.
+      GF_SECURITY_ADMIN_PASSWORD: "12345" # Sets the initial administrator password for the local classroom environment.
+      GF_USERS_ALLOW_SIGN_UP: "false" # Prevents unauthenticated users from creating Grafana accounts.
+    ports:
+      - "3000:3000" # Publishes Grafana's web interface on host port 3000.
+    volumes:
+      - grafana-data:/var/lib/grafana # Persists dashboards, users, and Grafana configuration.
+
+  bootstrap:
+    # One-shot initialization container that waits for services and creates FIWARE resources.
+    image: curlimages/curl:8.9.1 # Supplies curl for readiness checks and bootstrap API calls.
+    container_name: fiware-bootstrap # Assigns a descriptive name to the initialization container.
+    depends_on:
+      - orion # Makes Orion available before its subscription is created.
+      - iot-agent # Makes the IoT Agent available before services and devices are registered.
+      - quantumleap # Makes the history API available before Orion notifications are configured.
+      - grafana # Makes the dashboard API available before its data source is created.
+    restart: "no" # Runs initialization once and does not restart after completion.
+    entrypoint: ["/bin/sh", "-c"] # Executes the following bootstrap script with the image shell.
+    command:
+      - |
+        # Stop on shell errors; individual idempotent registration calls below explicitly tolerate failures.
+        set -e
+        # Wait until every dependent service responds before sending configuration requests.
+        until curl -fsS http://orion:1026/version; do sleep 2; done
+        until curl -fsS http://iot-agent:4041/iot/about; do sleep 2; done
+        until curl -fsS http://quantumleap:8668/version; do sleep 2; done
+        until curl -fsS http://grafana:3000/api/health; do sleep 2; done
+
+        curl -fsS -X POST http://iot-agent:4041/iot/services \
+          -H 'Content-Type: application/json' \
+          -H 'fiware-service: openiot' \
+          -H 'fiware-servicepath: /' \
+          -d '{"services":[{"apikey":"fiware","cbroker":"http://orion:1026","entity_type":"Sensor","resource":"/iot/json"}]}' || true
+
+        curl -fsS -X POST http://iot-agent:4041/iot/devices \
+          -H 'Content-Type: application/json' \
+          -H 'fiware-service: openiot' \
+          -H 'fiware-servicepath: /' \
+          -d '{"devices":[{"device_id":"weather","entity_name":"urn:ngsi-ld:Sensor:weather","entity_type":"Weather","protocol":"PDI-IoTA-JSON","transport":"HTTP","endpoint":"http://iot-agent:7896","timezone":"Europe/Lisbon","attributes":[{"object_id":"temperature","name":"temperature","type":"Number"},{"object_id":"humidity","name":"humidity","type":"Number"}]},{"device_id":"airquality","entity_name":"urn:ngsi-ld:Sensor:airquality","entity_type":"AirQualityObserved","protocol":"PDI-IoTA-JSON","transport":"HTTP","endpoint":"http://iot-agent:7896","timezone":"Europe/Lisbon","attributes":[{"object_id":"pm10","name":"pm10","type":"Number"},{"object_id":"pm25","name":"pm25","type":"Number"},{"object_id":"co2","name":"co2","type":"Number"}]}]}' || true
+
+        curl -fsS -X POST http://orion:1026/v2/subscriptions \
+          -H 'Content-Type: application/json' \
+          -H 'fiware-service: openiot' \
+          -H 'fiware-servicepath: /' \
+          -d '{"description":"Persist weather and air quality data in QuantumLeap","subject":{"entities":[{"idPattern":".*","type":"WeatherObserved"},{"idPattern":".*","type":"AirQualityObserved"}],"condition":{"attrs":["temperature","relativeHumidity","humidity","windSpeed","precipitation","uVIndexMax","uv_index","dateObserved","last_mqtt_update","latitude","longitude","local","pm10","pm25","co2","pm1","aqi","main_pollutant","no2","o3"]}},"notification":{"http":{"url":"http://quantumleap:8668/v2/notify"},"attrs":["temperature","relativeHumidity","humidity","windSpeed","precipitation","uVIndexMax","uv_index","dateObserved","last_mqtt_update","latitude","longitude","local","pm10","pm25","co2","pm1","aqi","main_pollutant","no2","o3"]}}' || true
+
+        curl -fsS -X POST http://grafana:3000/api/datasources \
+          -u admin:12345 \
+          -H 'Content-Type: application/json' \
+          -d '{"name":"CrateDB","type":"postgres","access":"proxy","url":"crate:5432","user":"crate","database":"doc","jsonData":{"database":"doc","sslmode":"disable","postgresVersion":1400},"secureJsonData":{}}' || true
+
+          # Report successful completion in the container logs.
+          echo 'FIWARE bootstrap concluido.'
+
+volumes:
+        # Named volumes keep state when containers are recreated.
+        mongo-data: # Persistent storage for MongoDB metadata and databases.
+        crate-data: # Persistent storage for CrateDB time-series data.
+        grafana-data: # Persistent storage for Grafana dashboards and settings.

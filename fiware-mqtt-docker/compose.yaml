@@ -1,0 +1,22 @@
+services:
+  station-manager:
+    build: .
+    image: fiware-mqtt-manager:local
+    container_name: fiware-mqtt-manager
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      FIWARE_URL: https://broker.fiware.urbanplatform.portodigital.pt/v2/entities
+      MQTT_HOST: 127.0.0.1
+      MQTT_PORT: 1883
+      WORKER_IMAGE: fiware-mqtt-station:local
+      DISCOVERY_INTERVAL: 60
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  station-worker-image:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    image: fiware-mqtt-station:local
+    command: ["true"]

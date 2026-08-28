@@ -23,3 +23,8 @@ http://IP_DO_SERVIDOR:3000
 Substitua `IP_DO_SERVIDOR` pelo IP ou hostname real do servidor.
 
 As instruções completas para compilar, executar, validar mensagens MQTT e criar a primeira dashboard estão nos ficheiros acima.
+
+### Origem dos dados
+
+- Os dados provêm do FIWARE broker de Porto Digital.
+- Mais informações: https://www.portodigital.pt/

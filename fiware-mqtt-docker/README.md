@@ -7,21 +7,6 @@ Este diretório disponibiliza **duas soluções alternativas** para levar dados 
 
 As duas soluções mantêm os tópicos MQTT originais. Escolha apenas uma para evitar publicação duplicada.
 
-## Diferença de topologia e arquitetura
-
-As duas opções acedem à mesma fonte FIWARE e publicam no mesmo broker MQTT, mas organizam os processos de forma diferente:
-
-| Aspeto | `fiware-mqtt` | `fiware-mqtt-docker` |
-|---|---|---|
-| Topologia | FIWARE -> um container -> MQTT | FIWARE -> manager -> vários workers -> MQTT |
-| Representação das estações | Todas as estações são tratadas pelo mesmo processo | Cada estação é simulada por um container worker próprio |
-| Descoberta | O próprio processo consulta e processa todas as entidades | O manager descobre as estações e gere o ciclo de vida dos workers |
-| Recolha de dados | Um container recolhe os dados de todas as estações | Cada worker consulta apenas a entidade da sua estação |
-| Isolamento | Sem isolamento entre estações | Falhas e reinícios ficam isolados por estação |
-| Escalabilidade | Aumenta a carga dentro de um único container | Adiciona ou remove workers conforme as estações disponíveis |
-
-Assim, `fiware-mqtt` **simula toda a rede num só container**, enquanto `fiware-mqtt-docker` **simula a existência física/lógica de cada estação**, criando um worker Docker por cada estação encontrada. O manager não publica os dados das estações: a sua função é descobrir, criar, atualizar, iniciar e remover workers. Os workers são os responsáveis pela consulta FIWARE e pela publicação MQTT.
-
 ## Solução 1: FIWARE -> MQTT
 
 Esta é a solução original, com um único processo a consultar as entidades `WeatherObserved` e `AirQualityObserved` e a publicar diretamente todos os dados.

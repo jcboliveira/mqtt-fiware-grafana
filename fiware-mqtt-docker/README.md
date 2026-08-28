@@ -9,7 +9,7 @@ As duas soluções mantêm os tópicos MQTT originais. Escolha apenas uma para e
 
 ## Solução 1: FIWARE -> MQTT
 
-Esta é a solução original, com um único processo a consultar as entidades `WeatherObserved` e `AirQualityObserved` e a publicar diretamente todos os dados.
+Esta é a solução original, com um único processo a consultar as entidades `WeatherObserved`, `AirQualityObserved` e `NoiseLevelObserved` e a publicar diretamente todos os dados.
 
 Os ficheiros da solução original estão em `/root/fiware-mqtt`:
 
@@ -21,7 +21,7 @@ docker run -d --name fiware-mqtt --restart unless-stopped --network host fiware-
 
 ## Solução 2: FIWARE -> manager -> workers -> MQTT
 
-Nesta solução, o `station-manager` consulta o URL FIWARE, verifica as estações disponíveis e cria automaticamente um container por estação. Os workers consultam as respetivas entidades e publicam nos mesmos tópicos MQTT.
+Nesta solução, o `station-manager` consulta o URL FIWARE, verifica as estações disponíveis e cria automaticamente um container por estação. Os workers consultam as respetivas entidades e publicam nos mesmos tópicos MQTT, incluindo `fiware/noise/<estação>/LAeq` para o nível sonoro equivalente em dB.
 
 ### Arranque
 
@@ -36,7 +36,7 @@ docker compose build
 docker compose up -d station-manager
 ```
 
-O `network_mode: host` mantém o broker definido originalmente em `127.0.0.1:1883`. O manager cria containers como `fiware-station-weather-nome` e `fiware-station-airquality-nome`, remove workers de estações que deixem de ser anunciadas e volta a tentar após falhas temporárias.
+O `network_mode: host` mantém o broker definido originalmente em `127.0.0.1:1883`. O manager cria containers como `fiware-station-weather-nome`, `fiware-station-airquality-nome` e `fiware-station-noise-nome`, remove workers de estações que deixem de ser anunciadas e volta a tentar após falhas temporárias.
 
 ### Verificação
 

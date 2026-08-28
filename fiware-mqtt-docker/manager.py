@@ -35,7 +35,11 @@ def fetch_entities(type_name):
 
 def station_specs():
     specs = []
-    for entity_type, kind in (("WeatherObserved", "weather"), ("AirQualityObserved", "airquality")):
+    for entity_type, kind in (
+        ("WeatherObserved", "weather"),
+        ("AirQualityObserved", "airquality"),
+        ("NoiseLevelObserved", "noise"),
+    ):
         entities = fetch_entities(entity_type)
         names = {}
         for entity in entities:

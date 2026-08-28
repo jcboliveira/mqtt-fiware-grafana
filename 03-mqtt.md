@@ -4,7 +4,7 @@
 
 Existem duas arquiteturas alternativas para transmitir dados FIWARE por MQTT:
 
-1. **FIWARE -> MQTT**: um único container consulta todas as estações `WeatherObserved` e `AirQualityObserved` e publica diretamente no broker.
+1. **FIWARE -> MQTT**: um único container consulta todas as estações `WeatherObserved`, `AirQualityObserved` e `NoiseLevelObserved` e publica diretamente no broker.
 2. **FIWARE -> manager -> workers -> MQTT**: o manager consulta o FIWARE, descobre as estações e cria um worker Docker por cada estação. Cada worker consulta apenas a sua estação e publica no broker.
 
 As duas soluções usam a mesma fonte FIWARE, o mesmo broker e os mesmos tópicos MQTT. Deve ser iniciada apenas uma, para evitar publicação duplicada.
@@ -68,7 +68,10 @@ Exemplos de tópicos:
 fiware/weather/bolhao/temperature 21.5
 fiware/weather/bolhao/relativeHumidity 63.1
 fiware/airquality/polo_asprela/pm25 2.0
+fiware/noise/aliados/LAeq 74.1
 ```
+
+As medições de ruído usam `LAeq`, o nível sonoro equivalente em dB. Tal como os restantes tipos de dados, cada estação publica também `local`, `latitude`, `longitude`, `dateObserved` e `last_mqtt_update`.
 
 O contentor `fiware-mqtt-json-bridge` subscreve `fiware/#` e envia os valores para o Orion:
 

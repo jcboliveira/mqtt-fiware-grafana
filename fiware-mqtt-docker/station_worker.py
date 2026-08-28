@@ -51,6 +51,7 @@ def publish_discovery(client):
     fields = {
         "weather": [("temperature", "Temperatura", "°C", "temperature"), ("relativeHumidity", "Humidade", "%", "humidity"), ("windSpeed", "Velocidade do vento", "km/h", None), ("precipitation", "Precipitação", "mm", None), ("uVIndexMax", "Índice UV", None, None), ("latitude", "Latitude", None, None), ("longitude", "Longitude", None, None)],
         "airquality": [("pm25", "PM2.5", "µg/m³", None), ("pm10", "PM10", "µg/m³", None), ("no2", "NO₂", "µg/m³", None), ("o3", "O₃", "µg/m³", None), ("co", "CO", "µg/m³", None), ("aqi", "AQI", None, None), ("main_pollutant", "Poluente Principal", None, None), ("latitude", "Latitude", None, None), ("longitude", "Longitude", None, None)],
+        "noise": [("LAeq", "Nível sonoro equivalente", "dB", None), ("latitude", "Latitude", None, None), ("longitude", "Longitude", None, None)],
     }[KIND]
     for field, name, unit, device_class in fields:
         payload = {"name": name, "unique_id": f"{KIND}_{STATION_ID}_{field}", "state_topic": f"{BASE}/{field}", "device": {"identifiers": [f"fiware_{KIND}_{STATION_ID}"], "name": STATION_NAME, "manufacturer": "Porto Digital", "model": "FIWARE"}}
@@ -70,8 +71,10 @@ def fetch_entity():
 def publish_entity(client, entity):
     if KIND == "weather":
         fields = ("precipitation", "temperature", "windSpeed", "relativeHumidity", "uVIndexMax", "uv_index")
-    else:
+    elif KIND == "airquality":
         fields = ("co", "no2", "o3", "pm1", "pm10", "pm25", "temperature")
+    else:
+        fields = ("LAeq",)
     for field in fields:
         value = get_value(entity, field)
         if value is None:

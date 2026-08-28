@@ -1,0 +1,194 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "row",
+      "title": "Média de todas as estações",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "panels": []
+    },
+    {
+      "datasource": "CrateDB",
+      "type": "stat",
+      "title": "PM1 médio atual",
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 25 }, { "color": "red", "value": 50 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT max(time_index) AS \"time\", AVG(pm1) AS value FROM doc.etairqualityobserved WHERE time_index >= CURRENT_TIMESTAMP - INTERVAL '5 minutes'" }]
+    },
+    {
+      "datasource": "CrateDB",
+      "type": "stat",
+      "title": "PM2.5 médio atual",
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 25 }, { "color": "red", "value": 50 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT max(time_index) AS \"time\", AVG(pm25) AS value FROM doc.etairqualityobserved WHERE time_index >= CURRENT_TIMESTAMP - INTERVAL '5 minutes'" }]
+    },
+    {
+      "datasource": "CrateDB",
+      "type": "stat",
+      "title": "PM10 médio atual",
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 100 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT max(time_index) AS \"time\", AVG(pm10) AS value FROM doc.etairqualityobserved WHERE time_index >= CURRENT_TIMESTAMP - INTERVAL '5 minutes'" }]
+    },
+    {
+      "datasource": "CrateDB",
+      "type": "stat",
+      "title": "NO2 médio atual",
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 200 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT max(time_index) AS \"time\", AVG(no2) AS value FROM doc.etairqualityobserved WHERE time_index >= CURRENT_TIMESTAMP - INTERVAL '5 minutes'" }]
+    },
+    {
+      "datasource": "CrateDB",
+      "type": "stat",
+      "title": "O3 médio atual",
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 160 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT max(time_index) AS \"time\", AVG(o3) AS value FROM doc.etairqualityobserved WHERE time_index >= CURRENT_TIMESTAMP - INTERVAL '5 minutes'" }]
+    },
+    {
+      "datasource": "CrateDB",
+      "type": "stat",
+      "title": "AQI médio atual",
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 51 }, { "color": "orange", "value": 101 }, { "color": "red", "value": 151 }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT max(time_index) AS \"time\", AVG(aqi) AS value FROM doc.etairqualityobserved WHERE time_index >= CURRENT_TIMESTAMP - INTERVAL '5 minutes'" }]
+    },
+    {
+      "datasource": "CrateDB",
+      "type": "timeseries",
+      "title": "Médias horárias de partículas e gases",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 12, "lineWidth": 2, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT date_trunc('hour', time_index) AS \"time\", AVG(pm1) AS \"PM1\", AVG(pm25) AS \"PM2.5\", AVG(pm10) AS \"PM10\", AVG(no2) AS \"NO2\", AVG(o3) AS \"O3\" FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) GROUP BY 1 ORDER BY 1" }]
+    },
+    {
+      "datasource": "CrateDB",
+      "type": "timeseries",
+      "title": "AQI médio horário",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 51 }, { "color": "orange", "value": 101 }, { "color": "red", "value": 151 }] }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT date_trunc('hour', time_index) AS \"time\", AVG(aqi) AS value FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) GROUP BY 1 ORDER BY 1" }]
+    },
+    {
+      "datasource": "CrateDB",
+      "type": "geomap",
+      "title": "Localização das estações de qualidade do ar",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 14 },
+      "id": 30,
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {
+        "view": { "id": "fit", "lat": 41.1579, "lon": -8.6291, "zoom": 12 },
+        "controls": { "showZoom": true, "mouseWheelZoom": true, "showAttribution": true, "showScale": false, "showMeasure": false, "showDebug": false },
+        "basemap": { "type": "osm-standard", "config": {} },
+        "layers": [{ "type": "markers", "name": "Estações de qualidade do ar", "config": { "showLegend": true, "style": { "color": { "fixed": "#0b2d5c" }, "size": { "fixed": 12 }, "textConfig": { "field": "name", "fontSize": 12, "offsetX": 0, "offsetY": -14 } }, "location": { "mode": "coords", "latitude": "latitude", "longitude": "longitude" } }}]
+      },
+      "targets": [{ "refId": "A", "format": "table", "rawQuery": true, "rawSql": "SELECT local AS name, latitude, longitude, max(time_index) AS time FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) AND latitude IS NOT NULL AND longitude IS NOT NULL GROUP BY local, latitude, longitude ORDER BY name" }]
+    },
+    {
+      "type": "row",
+      "title": "Estação: $station_air",
+      "repeat": "station_air",
+      "repeatDirection": "v",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "id": 100,
+      "panels": [
+        {
+          "datasource": "CrateDB",
+          "type": "stat",
+          "title": "PM1 instantâneo",
+          "gridPos": { "h": 5, "w": 4, "x": 0, "y": 25 },
+          "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 25 }, { "color": "red", "value": 50 }] } }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+          "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time_index AS \"time\", pm1 AS value FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) AND local = ${station_air:sqlstring} ORDER BY 1" }]
+        },
+        {
+          "datasource": "CrateDB",
+          "type": "stat",
+          "title": "PM2.5 instantâneo",
+          "gridPos": { "h": 5, "w": 4, "x": 4, "y": 25 },
+          "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 25 }, { "color": "red", "value": 50 }] } }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+          "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time_index AS \"time\", pm25 AS value FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) AND local = ${station_air:sqlstring} ORDER BY 1" }]
+        },
+        {
+          "datasource": "CrateDB",
+          "type": "stat",
+          "title": "PM10 instantâneo",
+          "gridPos": { "h": 5, "w": 4, "x": 8, "y": 25 },
+          "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 100 }] } }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+          "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time_index AS \"time\", pm10 AS value FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) AND local = ${station_air:sqlstring} ORDER BY 1" }]
+        },
+        {
+          "datasource": "CrateDB",
+          "type": "stat",
+          "title": "NO2 instantâneo",
+          "gridPos": { "h": 5, "w": 4, "x": 12, "y": 25 },
+          "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 200 }] } }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+          "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time_index AS \"time\", no2 AS value FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) AND local = ${station_air:sqlstring} ORDER BY 1" }]
+        },
+        {
+          "datasource": "CrateDB",
+          "type": "stat",
+          "title": "O3 instantâneo",
+          "gridPos": { "h": 5, "w": 4, "x": 16, "y": 25 },
+          "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 160 }] } }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+          "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time_index AS \"time\", o3 AS value FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) AND local = ${station_air:sqlstring} ORDER BY 1" }]
+        },
+        {
+          "datasource": "CrateDB",
+          "type": "stat",
+          "title": "AQI instantâneo",
+          "gridPos": { "h": 5, "w": 4, "x": 20, "y": 25 },
+          "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 51 }, { "color": "orange", "value": 101 }, { "color": "red", "value": 151 }] } }, "overrides": [] },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "textMode": "auto" },
+          "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time_index AS \"time\", aqi AS value FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) AND local = ${station_air:sqlstring} ORDER BY 1" }]
+        },
+        {
+          "datasource": "CrateDB",
+          "type": "timeseries",
+          "title": "Poluentes por hora",
+          "gridPos": { "h": 8, "w": 16, "x": 0, "y": 30 },
+          "fieldConfig": { "defaults": { "unit": "ugm3", "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 12, "lineWidth": 2, "showPoints": "never" } }, "overrides": [] },
+          "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+          "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT date_trunc('hour', time_index) AS \"time\", AVG(pm1) AS \"PM1\", AVG(pm25) AS \"PM2.5\", AVG(pm10) AS \"PM10\", AVG(no2) AS \"NO2\", AVG(o3) AS \"O3\" FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) AND local = ${station_air:sqlstring} GROUP BY 1 ORDER BY 1" }]
+        },
+        {
+          "datasource": "CrateDB",
+          "type": "timeseries",
+          "title": "AQI por hora",
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 30 },
+          "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 51 }, { "color": "orange", "value": 101 }, { "color": "red", "value": 151 }] }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2, "showPoints": "never" } }, "overrides": [] },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": false }, "tooltip": { "mode": "single", "sort": "none" } },
+          "targets": [{ "refId": "A", "format": "time_series", "rawQuery": true, "rawSql": "SELECT date_trunc('hour', time_index) AS \"time\", AVG(aqi) AS value FROM doc.etairqualityobserved WHERE $__timeFilter(time_index) AND local = ${station_air:sqlstring} GROUP BY 1 ORDER BY 1" }]
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["fiware", "qualidade do ar"],
+  "templating": { "list": [{ "name": "station_air", "label": "Estações", "type": "query", "datasource": "CrateDB", "definition": "SELECT DISTINCT local FROM doc.etairqualityobserved WHERE local IS NOT NULL ORDER BY 1", "query": "SELECT DISTINCT local FROM doc.etairqualityobserved WHERE local IS NOT NULL ORDER BY 1", "refresh": 1, "includeAll": true, "allValue": "", "multi": true, "current": { "selected": true, "text": "All", "value": "$__all" }, "options": [] }] },
+  "time": { "from": "now-30d", "to": "now" },
+  "timezone": "Europe/Lisbon",
+  "title": "FIWARE - Qualidade do Ar",
+  "uid": "fiware-qualidade-ar",
+  "version": 1
+}

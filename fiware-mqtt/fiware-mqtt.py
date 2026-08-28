@@ -767,13 +767,69 @@ def loop_weather(client):
         time.sleep(60)
 
 
+def loop_noise(client):
+    sensor_fields = {"LAeq": {}}
+    extra_fields = {
+        "local": {},
+        "dateObserved": {},
+        "last_mqtt_update": {},
+        "latitude": {},
+        "longitude": {},
+    }
+    sensor_base = "fiware/noise"
+
+    while True:
+        data = fetch_fiware("NoiseLevelObserved")
+        print(f"INFO: {len(data)} NoiseLevel entities.")
+        name_counts = {}
+
+        for entity in data:
+            location = entity.get("location", {}).get("value", {})
+            coordinates = location.get("coordinates", [])
+            local_name = get_station_name(entity)
+            if len(coordinates) != 2 or not local_name or local_name == "Unknown":
+                print(f"WARNING: Noise entity missing name or location: {entity['id']}")
+                continue
+
+            safe_local = normalize_station_name(local_name)
+            count = name_counts.get(safe_local, 0) + 1
+            name_counts[safe_local] = count
+            entity_id = f"{safe_local}_{count}" if count > 1 else safe_local
+
+            date_obs_str = entity.get("dateObserved", {}).get("value")
+            if date_obs_str:
+                try:
+                    if datetime.now(timezone.utc) - parse_fiware_datetime(date_obs_str) > timedelta(days=1):
+                        print(f"WARNING: {entity_id} ignored noise (stale observation).")
+                        continue
+                except Exception as error:
+                    print(f"ERROR: Invalid date in NoiseLevel: {error}")
+
+            lon, lat = coordinates
+            print(f"INFO: Station '{local_name}' → ID '{entity_id}'")
+            publish_values(
+                client,
+                entity_id,
+                entity,
+                local_name,
+                sensor_base,
+                sensor_fields,
+                extra_fields,
+            )
+            client.publish(f"{sensor_base}/{entity_id}/latitude", lat, retain=True)
+            client.publish(f"{sensor_base}/{entity_id}/longitude", lon, retain=True)
+
+        time.sleep(60)
+
+
 if __name__ == "__main__":
     # Initialize MQTT connection and start the reconnect thread.
     client = mqtt_init()
 
-    # Start the air quality and weather polling loops in background threads.
+    # Start the air quality, weather, and noise polling loops in background threads.
     threading.Thread(target=loop_airquality, args=(client,), daemon=True).start()
     threading.Thread(target=loop_weather, args=(client,), daemon=True).start()
+    threading.Thread(target=loop_noise, args=(client,), daemon=True).start()
 
     # Keep the main thread alive while background threads run.
     while True:

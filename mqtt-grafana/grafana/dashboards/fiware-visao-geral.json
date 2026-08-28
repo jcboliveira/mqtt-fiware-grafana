@@ -1,0 +1,66 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 0,
+  "links": [
+    { "title": "Meteorologia", "type": "link", "url": "/d/fiware-monitorizacao-meteorologica", "targetBlank": false },
+    { "title": "Qualidade do Ar", "type": "link", "url": "/d/fiware-qualidade-ar", "targetBlank": false },
+    { "title": "Ruído", "type": "link", "url": "/d/fiware-ruido", "targetBlank": false }
+  ],
+  "panels": [
+    {
+      "type": "text",
+      "title": "FIWARE Porto",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "mode": "markdown",
+        "content": "# Monitorização Urbana\n\nEscolha uma área para consultar as estações e as medições em tempo real."
+      }
+    },
+    {
+      "type": "text",
+      "title": "Meteorologia",
+      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 4 },
+      "id": 10,
+      "links": [{ "title": "Abrir Meteorologia", "url": "/d/fiware-monitorizacao-meteorologica", "targetBlank": false }],
+      "transparent": true,
+      "options": {
+        "mode": "markdown",
+        "content": "## Meteorologia\n\n[Temperatura, humidade, vento, precipitação, UV e mapa das estações.](/d/fiware-monitorizacao-meteorologica)"
+      }
+    },
+    {
+      "type": "text",
+      "title": "Qualidade do Ar",
+      "gridPos": { "h": 10, "w": 8, "x": 8, "y": 4 },
+      "id": 11,
+      "links": [{ "title": "Abrir Qualidade do Ar", "url": "/d/fiware-qualidade-ar", "targetBlank": false }],
+      "transparent": true,
+      "options": {
+        "mode": "markdown",
+        "content": "## Qualidade do Ar\n\n[PM1, PM2.5, PM10, NO2, O3, AQI e mapa das estações.](/d/fiware-qualidade-ar)"
+      }
+    },
+    {
+      "type": "text",
+      "title": "Ruído",
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 4 },
+      "id": 12,
+      "links": [{ "title": "Abrir Ruído", "url": "/d/fiware-ruido", "targetBlank": false }],
+      "transparent": true,
+      "options": {
+        "mode": "markdown",
+        "content": "## Ruído\n\n[Nível sonoro equivalente LAeq, médias horárias e mapa das estações.](/d/fiware-ruido)"
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["fiware", "visão geral"],
+  "time": { "from": "now-24h", "to": "now" },
+  "timezone": "Europe/Lisbon",
+  "title": "FIWARE - Visão Geral",
+  "uid": "fiware-visao-geral",
+  "version": 1
+}

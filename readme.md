@@ -2,7 +2,7 @@
 
 Ambiente FIWARE que recolhe dados através de MQTT, armazena histórico em CrateDB e disponibiliza visualizações no Grafana.
 
-Os dados MQTT são gerados por recolha da informação meteo e de qualidade de ar disponibilizada pela CMP.
+Os dados MQTT são gerados por recolha da informação meteorológica, de qualidade do ar e de ruído disponibilizada pela CMP.
 
 ## Documentação
 

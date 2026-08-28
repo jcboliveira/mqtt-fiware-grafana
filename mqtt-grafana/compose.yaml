@@ -111,6 +111,10 @@ services: # Declares all containers that make up the FIWARE deployment.
                   _, _, station, attribute = topic_parts
                   entity_id = f"weather_{station}"
                   entity_type = "WeatherObserved"
+                elif len(topic_parts) == 4 and topic_parts[:2] == ["fiware", "noise"]:
+                  _, _, station, attribute = topic_parts
+                  entity_id = f"noise_{station}"
+                  entity_type = "NoiseLevelObserved"
                 else:
                   entity_id = None
 
@@ -211,6 +215,18 @@ services: # Declares all containers that make up the FIWARE deployment.
         curl -fsS http://crate:4200/_sql \
           -H 'Content-Type: application/json' \
           --data-binary '{"stmt":"CREATE VIEW doc.etairqualityobserved AS SELECT * FROM mtopeniot.etairqualityobserved"}' || true
+        until response=$$(curl -sS http://crate:4200/_sql -H 'Content-Type: application/json' --data-binary '{"stmt":"SELECT 1 FROM information_schema.tables WHERE table_schema = '\''mtopeniot'\'' AND table_name = '\''etnoiselevelobserved'\''"}') && echo "$${response}" | grep -q '"rows":\[\[1\]\]'; do
+          sleep 5
+        done
+        curl -fsS http://crate:4200/_sql \
+          -H 'Content-Type: application/json' \
+          --data-binary '{"stmt":"ALTER TABLE mtopeniot.etnoiselevelobserved ADD COLUMN latitude DOUBLE PRECISION"}' || true
+        curl -fsS http://crate:4200/_sql \
+          -H 'Content-Type: application/json' \
+          --data-binary '{"stmt":"ALTER TABLE mtopeniot.etnoiselevelobserved ADD COLUMN longitude DOUBLE PRECISION"}' || true
+        curl -fsS http://crate:4200/_sql \
+          -H 'Content-Type: application/json' \
+          --data-binary '{"stmt":"CREATE VIEW doc.etnoiselevelobserved AS SELECT * FROM mtopeniot.etnoiselevelobserved"}' || true
         echo 'CrateDB compatibility view initialized.'
 
   grafana:
@@ -228,6 +244,8 @@ services: # Declares all containers that make up the FIWARE deployment.
       - "3000:3000" # Publishes Grafana's web interface on host port 3000.
     volumes:
       - grafana-data:/var/lib/grafana # Persists dashboards, users, and Grafana configuration.
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro # Loads dashboard provisioning configuration.
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro # Makes the FIWARE dashboard definition available to Grafana.
 
   bootstrap:
     # One-shot initialization container that waits for services and creates FIWARE resources.
@@ -266,7 +284,7 @@ services: # Declares all containers that make up the FIWARE deployment.
           -H 'Content-Type: application/json' \
           -H 'fiware-service: openiot' \
           -H 'fiware-servicepath: /' \
-          -d '{"description":"Persist weather and air quality data in QuantumLeap","subject":{"entities":[{"idPattern":".*","type":"WeatherObserved"},{"idPattern":".*","type":"AirQualityObserved"}],"condition":{"attrs":["temperature","relativeHumidity","humidity","windSpeed","precipitation","uVIndexMax","uv_index","dateObserved","last_mqtt_update","latitude","longitude","local","pm10","pm25","co2","pm1","aqi","main_pollutant","no2","o3"]}},"notification":{"http":{"url":"http://quantumleap:8668/v2/notify"},"attrs":["temperature","relativeHumidity","humidity","windSpeed","precipitation","uVIndexMax","uv_index","dateObserved","last_mqtt_update","latitude","longitude","local","pm10","pm25","co2","pm1","aqi","main_pollutant","no2","o3"]}}' || true
+          -d '{"description":"Persist weather, air quality and noise data in QuantumLeap","subject":{"entities":[{"idPattern":".*","type":"WeatherObserved"},{"idPattern":".*","type":"AirQualityObserved"},{"idPattern":".*","type":"NoiseLevelObserved"}],"condition":{"attrs":["temperature","relativeHumidity","humidity","windSpeed","precipitation","uVIndexMax","uv_index","dateObserved","last_mqtt_update","latitude","longitude","local","pm10","pm25","co2","pm1","aqi","main_pollutant","no2","o3","LAeq"]}},"notification":{"http":{"url":"http://quantumleap:8668/v2/notify"},"attrs":["temperature","relativeHumidity","humidity","windSpeed","precipitation","uVIndexMax","uv_index","dateObserved","last_mqtt_update","latitude","longitude","local","pm10","pm25","co2","pm1","aqi","main_pollutant","no2","o3","LAeq"]}}' || true
 
         curl -fsS -X POST http://grafana:3000/api/datasources \
           -u admin:12345 \
